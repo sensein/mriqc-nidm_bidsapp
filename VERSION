@@ -1,0 +1,12 @@
+{
+    "mriqc_nidm_bidsapp": {
+        "version": "0.1.0",
+        "source": "setup.py"
+    },
+    "mriqc": {
+        "version": "latest",
+        "source": "base_image",
+        "image": "nipreps/mriqc:latest",
+        "note": "Using 'latest' for flexibility. To pin version, rebuild container with: docker build --build-arg MRIQC_VERSION=0.16.1"
+    }
+}
