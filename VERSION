@@ -1,0 +1,11 @@
+{
+    "mriqc_nidm_bidsapp": {
+        "version": "0.1.0",
+        "source": "setup.py"
+    },
+    "mriqc": {
+        "version": "latest",
+        "source": "base_image",
+        "image": "nipreps/mriqc:latest"
+    }
+}

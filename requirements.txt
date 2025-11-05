@@ -1,0 +1,7 @@
+# Main dependencies
+click>=8.0.0
+pybids>=0.15.1
+pandas>=1.3.0
+rdflib>=6.3.2
+pynidm>=0.0.4
+nidmresults>=2.0.0
