@@ -5,6 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
+AGENTS.md
+CLAUDE.md
+docs/internal/*
 
 # Distribution / packaging
 .Python
