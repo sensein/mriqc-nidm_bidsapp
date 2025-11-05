@@ -5,6 +5,12 @@ from pathlib import Path
 from setuptools import find_packages, setup
 
 
+def read_requirements():
+    """Read dependencies from requirements.txt"""
+    with open('requirements.txt') as f:
+        return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+
+
 def build_docker():
     """Build Docker container"""
     print("Building Docker image...")
@@ -68,15 +74,8 @@ def build_singularity(output_path=None):
         return False
 
 
-# Handle dependency conflicts by defining dependencies with proper constraints
-install_requires = [
-    "click>=8.0.0",
-    "pybids>=0.15.1",
-    "pandas>=1.3.0",
-    "rdflib>=6.3.2",
-    "pynidm>=0.0.4",
-    "nidmresults>=2.0.0",
-]
+# Read dependencies from requirements.txt to maintain single source of truth
+install_requires = read_requirements()
 
 # Check if we're being called with a container build command
 if len(sys.argv) > 1 and sys.argv[1] in ["docker", "singularity", "containers"]:
@@ -123,7 +122,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "mriqc-nidm=src.run:main",
+            # Note: run.py will be moved to src/mriqc_nidm/ in PR #7
+            "mriqc-nidm=mriqc_nidm.run:main",
         ],
     },
     python_requires=">=3.9",
