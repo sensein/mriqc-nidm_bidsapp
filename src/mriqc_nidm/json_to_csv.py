@@ -28,18 +28,19 @@ import pandas as pd
 
 def remove_keys(my_dict: Dict, keys_to_remove: list) -> Dict:
     """
-    Remove multiple keys from a dictionary.
+    Create a new dictionary without the specified keys.
+
+    This is a pure function that does not modify the input dictionary,
+    avoiding side effects and making the behavior more predictable.
 
     Args:
         my_dict: The dictionary to remove keys from
         keys_to_remove: A list of keys to remove
 
     Returns:
-        Updated dictionary with specified keys removed
+        A new dictionary with the specified keys removed
     """
-    for key in keys_to_remove:
-        my_dict.pop(key, None)
-    return my_dict
+    return {key: value for key, value in my_dict.items() if key not in keys_to_remove}
 
 
 def create_software_metadata_csv(
@@ -93,9 +94,11 @@ def create_software_metadata_csv(
         "ID": "https://scicrunch.org/resolver/RRID:SCR_022942",
     }
 
-    # Write to CSV
+    # Write to CSV (use pathlib for robust filename generation)
     df_software = pd.DataFrame(software_metadata, index=[0])
-    software_csv_path = Path(str(csv_file_path).replace(".csv", "_software_metadata.csv"))
+    software_csv_path = csv_file_path.with_name(
+        f"{csv_file_path.stem}_software_metadata.csv"
+    )
     df_software.to_csv(software_csv_path, index=False)
 
     logger.info(f"Created software metadata: {software_csv_path}")
@@ -150,7 +153,8 @@ def extract_bids_info(
             logger.debug(f"Extracted subject from filename: {subj}")
 
     # Extract session, task, run from file path and filename
-    path_parts = str(json_file_path).split("/")
+    # Use pathlib.parts for cross-platform compatibility (works on Windows/Unix)
+    path_parts = json_file_path.parts
     filename = json_file_path.name
     ses = None
     task = None
@@ -277,8 +281,8 @@ def convert_mriqc_json_to_csv(
         "spacing_z",
     ]
 
-    # Remove unwanted keys
-    updated_data = remove_keys(data.copy(), keys_to_drop)
+    # Remove unwanted keys (remove_keys is a pure function, no need for .copy())
+    updated_data = remove_keys(data, keys_to_drop)
     logger.debug(f"Removed {len(keys_to_drop)} unwanted fields")
 
     # Extract BIDS information
@@ -316,27 +320,44 @@ def convert_mriqc_json_to_csv(
 
 # Command-line interface (for standalone usage)
 if __name__ == "__main__":
+    import argparse
     import sys
 
     # Setup logging for CLI
-    logging.basicConfig(
-        level=logging.INFO, format="%(levelname)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
 
-    # Parse command line arguments
-    if len(sys.argv) != 3:
-        print("Usage: python json_to_csv.py <mriqc_json_file> <csv_output_file>")
-        print(f"Number of arguments: {len(sys.argv)}")
-        print(f"Argument List: {sys.argv}")
-        sys.exit(1)
+    # Parse command line arguments with argparse for better usability
+    parser = argparse.ArgumentParser(
+        description="Convert MRIQC JSON output to CSV format for NIDM conversion.",
+        epilog="Example: python json_to_csv.py sub-01_T1w.json sub-01_mriqc.csv",
+    )
+    parser.add_argument(
+        "json_file",
+        type=Path,
+        help="Path to the input MRIQC JSON file",
+    )
+    parser.add_argument(
+        "csv_file",
+        type=Path,
+        help="Path to the output CSV file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose (DEBUG level) logging",
+    )
 
-    json_file = Path(sys.argv[1])
-    csv_file = Path(sys.argv[2])
+    args = parser.parse_args()
+
+    # Adjust logging level if verbose
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     try:
         csv_path, metadata_path = convert_mriqc_json_to_csv(
-            json_file, csv_file, logger
+            args.json_file, args.csv_file, logger
         )
         print(f"\nSuccess!")
         print(f"  CSV: {csv_path}")
