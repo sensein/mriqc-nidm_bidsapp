@@ -20,6 +20,12 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from rdflib import Graph
+from rdflib.exceptions import ParserError
+from rdflib.plugin import PluginException
+
+
+# Module-level constant for supported NIDM file extensions
+SUPPORTED_NIDM_EXTENSIONS = [".ttl", ".jsonld", ".json-ld"]
 
 
 def detect_existing_nidm(
@@ -76,23 +82,13 @@ def detect_existing_nidm(
         logger.info(f"Found existing NIDM (preferred): {preferred}")
         return preferred
 
-    # Try any .ttl file
-    ttl_files = list(nidm_input_dir.glob("*.ttl"))
-    if ttl_files:
-        logger.info(f"Found existing NIDM (ttl): {ttl_files[0]}")
-        return ttl_files[0]
-
-    # Try any .jsonld file
-    jsonld_files = list(nidm_input_dir.glob("*.jsonld"))
-    if jsonld_files:
-        logger.info(f"Found existing NIDM (jsonld): {jsonld_files[0]}")
-        return jsonld_files[0]
-
-    # Try any .json-ld file
-    json_ld_files = list(nidm_input_dir.glob("*.json-ld"))
-    if json_ld_files:
-        logger.info(f"Found existing NIDM (json-ld): {json_ld_files[0]}")
-        return json_ld_files[0]
+    # Search for other NIDM formats in order of preference
+    # Sort results for deterministic behavior across filesystems
+    for ext in SUPPORTED_NIDM_EXTENSIONS:
+        files = sorted(nidm_input_dir.glob(f"*{ext}"))
+        if files:
+            logger.info(f"Found existing NIDM ({ext.lstrip('.')}): {files[0]}")
+            return files[0]
 
     logger.debug(f"No NIDM files found in: {nidm_input_dir}")
     return None
@@ -157,7 +153,7 @@ def copy_nidm_to_output(
             logger.info(f"Input and output NIDM paths are identical: {output_path}")
             logger.info("Skipping copy to avoid unnecessary operation")
             return output_path
-    except Exception as e:
+    except (FileNotFoundError, RuntimeError, OSError) as e:
         logger.warning(f"Could not compare paths: {e}")
 
     # Copy file with metadata preservation
@@ -249,10 +245,10 @@ def convert_nidm_formats(
 
         return ttl_output, jsonld_output
 
-    except Exception as e:
+    except (OSError, ParserError, PluginException) as e:
         logger.error(f"Failed to convert NIDM formats: {e}")
         logger.error(f"  Input file: {input_file}")
-        raise Exception(f"NIDM format conversion failed: {e}") from e
+        raise RuntimeError(f"NIDM format conversion failed: {e}") from e
 
 
 def get_supported_nidm_formats() -> List[str]:
@@ -266,7 +262,7 @@ def get_supported_nidm_formats() -> List[str]:
         >>> get_supported_nidm_formats()
         ['.ttl', '.jsonld', '.json-ld']
     """
-    return [".ttl", ".jsonld", ".json-ld"]
+    return SUPPORTED_NIDM_EXTENSIONS
 
 
 def is_nidm_file(file_path: Path) -> bool:
@@ -286,4 +282,4 @@ def is_nidm_file(file_path: Path) -> bool:
         >>> is_nidm_file(Path('data.csv'))
         False
     """
-    return file_path.suffix in get_supported_nidm_formats()
+    return file_path.suffix in SUPPORTED_NIDM_EXTENSIONS
