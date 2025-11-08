@@ -21,6 +21,7 @@ from mriqc_nidm.csv_to_nidm import (
     CSV2NIDM_TOOL,
     check_csv2nidm_available,
     convert_csv_to_nidm,
+    main,
 )
 
 
@@ -264,13 +265,16 @@ def test_convert_csv_to_nidm_existing_nidm_not_found(tmp_files, mock_logger):
 
 def test_convert_csv_to_nidm_execution_failure(tmp_files, mock_logger):
     """Test error when csv2nidm execution fails."""
-    mock_result = Mock()
-    mock_result.returncode = 1
-    mock_result.stdout = ""
-    mock_result.stderr = "Error: Invalid CSV format"
+    # Create CalledProcessError to simulate non-zero exit code
+    error = subprocess.CalledProcessError(
+        returncode=1,
+        cmd=["csv2nidm"],
+        output="",
+        stderr="Error: Invalid CSV format"
+    )
 
     with patch("shutil.which", return_value="/usr/bin/csv2nidm"), patch(
-        "subprocess.run", return_value=mock_result
+        "subprocess.run", side_effect=error
     ):
 
         with pytest.raises(RuntimeError, match="csv2nidm failed"):
@@ -337,8 +341,6 @@ def test_main_success(tmp_files):
         "subprocess.run", return_value=mock_result
     ), patch("sys.argv", test_args):
 
-        from mriqc_nidm.csv_to_nidm import main
-
         exit_code = main()
         assert exit_code == 0
 
@@ -364,8 +366,6 @@ def test_main_with_existing_nidm(tmp_files):
         "subprocess.run", return_value=mock_result
     ), patch("sys.argv", test_args):
 
-        from mriqc_nidm.csv_to_nidm import main
-
         exit_code = main()
         assert exit_code == 0
 
@@ -390,8 +390,6 @@ def test_main_verbose(tmp_files):
         "subprocess.run", return_value=mock_result
     ), patch("sys.argv", test_args):
 
-        from mriqc_nidm.csv_to_nidm import main
-
         exit_code = main()
         assert exit_code == 0
 
@@ -409,8 +407,6 @@ def test_main_file_not_found(tmp_files):
     with patch("shutil.which", return_value="/usr/bin/csv2nidm"), patch(
         "sys.argv", test_args
     ):
-
-        from mriqc_nidm.csv_to_nidm import main
 
         exit_code = main()
         assert exit_code == 1

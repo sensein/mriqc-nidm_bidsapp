@@ -27,6 +27,7 @@ from typing import Optional
 
 # Module-level constants
 CSV2NIDM_TOOL = "csv2nidm"
+TIMEOUT_SECONDS = 300
 
 
 def check_csv2nidm_available() -> bool:
@@ -162,23 +163,21 @@ def convert_csv_to_nidm(
     # Execute csv2nidm
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, timeout=300
+            cmd, capture_output=True, text=True, check=True, timeout=TIMEOUT_SECONDS
         )
     except subprocess.TimeoutExpired as e:
-        logger.error(f"csv2nidm timed out after 300 seconds")
+        logger.error(f"csv2nidm timed out after {TIMEOUT_SECONDS} seconds")
         raise RuntimeError(f"csv2nidm execution timed out: {e}") from e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"csv2nidm failed with return code {e.returncode}")
+        logger.error(f"stdout: {e.stdout}")
+        logger.error(f"stderr: {e.stderr}")
+        raise RuntimeError(
+            f"csv2nidm failed: {e.stderr or e.stdout or 'Unknown error'}"
+        ) from e
     except (OSError, subprocess.SubprocessError) as e:
         logger.error(f"Failed to execute csv2nidm: {e}")
         raise RuntimeError(f"csv2nidm execution failed: {e}") from e
-
-    # Check return code
-    if result.returncode != 0:
-        logger.error(f"csv2nidm failed with return code {result.returncode}")
-        logger.error(f"stdout: {result.stdout}")
-        logger.error(f"stderr: {result.stderr}")
-        raise RuntimeError(
-            f"csv2nidm failed: {result.stderr or result.stdout or 'Unknown error'}"
-        )
 
     # Log success
     if existing_nidm:
