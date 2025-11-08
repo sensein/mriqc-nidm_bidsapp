@@ -318,7 +318,7 @@ def test_convert_csv_to_nidm_subprocess_error(tmp_files, mock_logger):
 # Tests for CLI
 
 
-def test_main_success(tmp_files, capsys):
+def test_main_success(tmp_files):
     """Test CLI with successful conversion."""
     mock_result = Mock()
     mock_result.returncode = 0

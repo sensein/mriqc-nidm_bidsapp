@@ -27,7 +27,6 @@ from typing import Optional
 
 # Module-level constants
 CSV2NIDM_TOOL = "csv2nidm"
-REQUIRED_FLAGS = ["-csv", "-csv_map", "-derivative", "-no_concepts"]
 
 
 def check_csv2nidm_available() -> bool:
@@ -68,7 +67,7 @@ def convert_csv_to_nidm(
         logger: Optional logger instance
 
     Returns:
-        True if conversion successful, False otherwise
+        True if conversion is successful
 
     Raises:
         FileNotFoundError: If csv2nidm tool is not available
@@ -247,7 +246,7 @@ def main():
 
     # Convert CSV to NIDM
     try:
-        success = convert_csv_to_nidm(
+        convert_csv_to_nidm(
             csv_file=args.csv_file,
             dictionary_csv=args.dictionary_csv,
             software_metadata_csv=args.software_metadata_csv,
@@ -255,13 +254,8 @@ def main():
             existing_nidm=args.existing_nidm,
             logger=logger,
         )
-
-        if success:
-            logger.info("Conversion completed successfully")
-            return 0
-        else:
-            logger.error("Conversion failed")
-            return 1
+        logger.info("Conversion completed successfully")
+        return 0
 
     except (FileNotFoundError, RuntimeError) as e:
         logger.error(f"Error: {e}")
