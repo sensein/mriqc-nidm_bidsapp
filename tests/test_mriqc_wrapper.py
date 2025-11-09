@@ -47,7 +47,7 @@ def test_dirs(tmp_path):
 @pytest.fixture
 def mock_mriqc_version():
     """Mock MRIQC version check."""
-    with patch("subprocess.run") as mock_run:
+    with patch("src.mriqc_nidm.mriqc_wrapper.subprocess.run") as mock_run:
         mock_result = Mock()
         mock_result.returncode = 0
         mock_result.stdout = "MRIQC v0.16.1\n"
@@ -96,7 +96,7 @@ class TestMRIQCWrapperInit:
 
     def test_init_checks_mriqc_version(self, test_dirs):
         """Test that initialization checks MRIQC version."""
-        with patch("subprocess.run") as mock_run:
+        with patch("src.mriqc_nidm.mriqc_wrapper.subprocess.run") as mock_run:
             mock_result = Mock()
             mock_result.returncode = 0
             mock_result.stdout = "MRIQC v0.16.1\n"
@@ -112,7 +112,7 @@ class TestMRIQCWrapperInit:
 
     def test_init_handles_missing_mriqc(self, test_dirs):
         """Test that initialization raises error if MRIQC not found."""
-        with patch("subprocess.run", side_effect=FileNotFoundError):
+        with patch("src.mriqc_nidm.mriqc_wrapper.subprocess.run", side_effect=FileNotFoundError):
             with pytest.raises(RuntimeError, match="MRIQC is not installed"):
                 MRIQCWrapper(
                     bids_dir=test_dirs["bids_dir"],
@@ -285,7 +285,7 @@ class TestMRIQCWrapperProcessing:
         output_file.write_text("{}")
 
         # Mock subprocess (should not be called)
-        with patch("subprocess.run") as mock_run:
+        with patch("src.mriqc_nidm.mriqc_wrapper.subprocess.run") as mock_run:
             result = wrapper.process_participant(subject_id="01", skip_existing=True)
 
             assert result is True

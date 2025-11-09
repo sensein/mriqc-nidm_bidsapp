@@ -12,9 +12,9 @@ import logging
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from bids import BIDSLayout
+from bids import BIDSLayout, __version__ as bids_version
 
 from . import __version__
 
@@ -198,6 +198,29 @@ class MRIQCWrapper:
 
         return cmd
 
+    def _get_participant_identifier(
+        self, subject_id: str, session_id: Optional[str] = None
+    ) -> str:
+        """
+        Construct participant identifier string.
+
+        Parameters
+        ----------
+        subject_id : str
+            Subject ID (without 'sub-' prefix)
+        session_id : str, optional
+            Session ID (without 'ses-' prefix)
+
+        Returns
+        -------
+        str
+            Formatted participant identifier (e.g., 'sub-01' or 'sub-01_ses-01')
+        """
+        identifier = f"sub-{subject_id}"
+        if session_id:
+            identifier += f"_ses-{session_id}"
+        return identifier
+
     def process_participant(
         self,
         subject_id: str,
@@ -227,9 +250,10 @@ class MRIQCWrapper:
         bool
             True if processing was successful, False otherwise
         """
+        participant_id = self._get_participant_identifier(subject_id, session_id)
+
         logger.info(
-            f"Processing subject: sub-{subject_id}"
-            + (f" session: ses-{session_id}" if session_id else "")
+            f"Processing subject: {participant_id}"
         )
 
         try:
@@ -237,15 +261,8 @@ class MRIQCWrapper:
             if skip_existing:
                 existing_outputs = self.find_mriqc_outputs(subject_id, session_id)
                 if existing_outputs:
-                    logger.info(
-                        f"sub-{subject_id}" +
-                        (f" ses-{session_id}" if session_id else "") +
-                        " already processed. Skipping..."
-                    )
-                    self.results["skipped"].append(
-                        f"sub-{subject_id}" +
-                        (f"_ses-{session_id}" if session_id else "")
-                    )
+                    logger.info(f"{participant_id} already processed. Skipping...")
+                    self.results["skipped"].append(participant_id)
                     return True
 
             # Create MRIQC command
@@ -267,42 +284,26 @@ class MRIQCWrapper:
             )
 
             if result.returncode != 0:
-                logger.error(
-                    f"MRIQC failed for sub-{subject_id}: {result.stderr}"
-                )
-                self.results["failure"].append(
-                    f"sub-{subject_id}" +
-                    (f"_ses-{session_id}" if session_id else "")
-                )
+                logger.error(f"MRIQC failed for {participant_id}: {result.stderr}")
+                self.results["failure"].append(participant_id)
                 return False
 
             # Verify outputs were created
             outputs = self.find_mriqc_outputs(subject_id, session_id)
             if not outputs:
                 logger.warning(
-                    f"MRIQC completed but no outputs found for sub-{subject_id}"
+                    f"MRIQC completed but no outputs found for {participant_id}"
                 )
-                self.results["failure"].append(
-                    f"sub-{subject_id}" +
-                    (f"_ses-{session_id}" if session_id else "")
-                )
+                self.results["failure"].append(participant_id)
                 return False
 
-            self.results["success"].append(
-                f"sub-{subject_id}" +
-                (f"_ses-{session_id}" if session_id else "")
-            )
-            logger.info(f"Successfully processed sub-{subject_id}")
+            self.results["success"].append(participant_id)
+            logger.info(f"Successfully processed {participant_id}")
             return True
 
         except Exception as e:
-            logger.error(
-                f"Error processing sub-{subject_id}: {str(e)}"
-            )
-            self.results["failure"].append(
-                f"sub-{subject_id}" +
-                (f"_ses-{session_id}" if session_id else "")
-            )
+            logger.error(f"Error processing {participant_id}: {str(e)}")
+            self.results["failure"].append(participant_id)
             return False
 
     def process_all_participants(
@@ -427,7 +428,7 @@ class MRIQCWrapper:
 
         return sorted(outputs)
 
-    def get_processing_summary(self) -> Dict[str, any]:
+    def get_processing_summary(self) -> Dict[str, Any]:
         """
         Get summary of processing results.
 
@@ -489,12 +490,6 @@ class MRIQCWrapper:
         if desc_file.exists():
             logger.info(f"dataset_description.json already exists: {desc_file}")
             return desc_file
-
-        # Get BIDS version
-        try:
-            from bids import __version__ as bids_version
-        except ImportError:
-            bids_version = "1.4.0"
 
         description = {
             "Name": "MRIQC - MRI Quality Control",
