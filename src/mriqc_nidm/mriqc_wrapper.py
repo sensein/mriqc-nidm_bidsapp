@@ -9,14 +9,14 @@ conversion.
 
 import json
 import logging
-import os
-import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from bids import BIDSLayout
+
+from . import __version__
 
 # Configure logging
 logger = logging.getLogger("mriqc-nidm.wrapper")
@@ -509,7 +509,7 @@ class MRIQCWrapper:
                 },
                 {
                     "Name": "mriqc-nidm",
-                    "Version": "0.1.0",  # TODO: Get from version.py
+                    "Version": __version__,
                     "Description": "MRIQC to NIDM BIDS App",
                 },
             ],

@@ -12,9 +12,8 @@ These tests verify the MRIQC wrapper functionality including:
 
 import json
 import pytest
-import subprocess
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from src.mriqc_nidm.mriqc_wrapper import MRIQCWrapper
 
