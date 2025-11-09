@@ -94,21 +94,15 @@ class TestMRIQCWrapperInit:
         assert "skipped" in wrapper.results
         assert isinstance(wrapper.results["success"], list)
 
-    def test_init_checks_mriqc_version(self, test_dirs):
+    def test_init_checks_mriqc_version(self, test_dirs, mock_mriqc_version):
         """Test that initialization checks MRIQC version."""
-        with patch("src.mriqc_nidm.mriqc_wrapper.subprocess.run") as mock_run:
-            mock_result = Mock()
-            mock_result.returncode = 0
-            mock_result.stdout = "MRIQC v0.16.1\n"
-            mock_run.return_value = mock_result
+        wrapper = MRIQCWrapper(
+            bids_dir=test_dirs["bids_dir"],
+            output_dir=test_dirs["output_dir"],
+        )
 
-            wrapper = MRIQCWrapper(
-                bids_dir=test_dirs["bids_dir"],
-                output_dir=test_dirs["output_dir"],
-            )
-
-            assert wrapper.mriqc_version == "0.16.1"
-            mock_run.assert_called_once()
+        assert wrapper.mriqc_version == "0.16.1"
+        mock_mriqc_version.assert_called_once()
 
     def test_init_handles_missing_mriqc(self, test_dirs):
         """Test that initialization raises error if MRIQC not found."""

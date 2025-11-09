@@ -25,6 +25,9 @@ logger = logging.getLogger("mriqc-nidm.wrapper")
 class MRIQCWrapper:
     """Wrapper for MRIQC quality control tool."""
 
+    # MRIQC output datatypes to search
+    MRIQC_DATATYPES = ["anat", "func", "dwi"]
+
     def __init__(
         self,
         bids_dir: Path,
@@ -92,25 +95,6 @@ class MRIQCWrapper:
                 "MRIQC is not installed or not available in PATH. "
                 "Please ensure MRIQC is properly installed."
             )
-
-    def check_mriqc_installation(self) -> bool:
-        """
-        Check if MRIQC is properly installed and accessible.
-
-        Returns
-        -------
-        bool
-            True if MRIQC is available, False otherwise
-        """
-        try:
-            subprocess.run(
-                ["mriqc", "--version"],
-                capture_output=True,
-                check=True,
-            )
-            return True
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            return False
 
     def _create_mriqc_command(
         self,
@@ -313,7 +297,7 @@ class MRIQCWrapper:
         modalities: Optional[List[str]] = None,
         skip_existing: bool = True,
         **kwargs,
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Process multiple participants with MRIQC.
 
@@ -412,8 +396,8 @@ class MRIQCWrapper:
         if not subject_dir.exists():
             return outputs
 
-        # Look in anat and func directories
-        for datatype in ["anat", "func"]:
+        # Look in MRIQC output directories
+        for datatype in self.MRIQC_DATATYPES:
             datatype_dir = subject_dir / datatype
             if not datatype_dir.exists():
                 continue
