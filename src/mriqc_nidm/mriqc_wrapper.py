@@ -82,7 +82,7 @@ class MRIQCWrapper:
                 text=True,
                 check=False,
             )
-            if result.returncode == 0:
+            if result.returncode == 0 and result.stdout:
                 # Parse version from output (e.g., "MRIQC v0.16.1")
                 version = result.stdout.strip().split()[-1]
                 return version.lstrip("v")
@@ -285,7 +285,7 @@ class MRIQCWrapper:
             logger.info(f"Successfully processed {participant_id}")
             return True
 
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError, ValueError) as e:
             logger.error(f"Error processing {participant_id}: {str(e)}")
             self.results["failure"].append(participant_id)
             return False
@@ -405,7 +405,10 @@ class MRIQCWrapper:
             # Find JSON files matching pattern
             for json_file in datatype_dir.glob(f"{pattern}*.json"):
                 if modality:
-                    if modality in json_file.stem:
+                    # BIDS suffix is the modality (last part before extension)
+                    # e.g., "sub-01_T1w.json" -> suffix is "T1w"
+                    suffix = json_file.stem.split("_")[-1]
+                    if modality == suffix:
                         outputs.append(json_file)
                 else:
                     outputs.append(json_file)

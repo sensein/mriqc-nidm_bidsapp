@@ -432,19 +432,24 @@ class TestMRIQCWrapperOutputs:
             output_dir=test_dirs["output_dir"],
         )
 
-        # Create mock outputs
+        # Create mock outputs including a potential false positive
         t1_file = wrapper.mriqc_dir / "sub-01" / "anat" / "sub-01_T1w.json"
         t2_file = wrapper.mriqc_dir / "sub-01" / "anat" / "sub-01_T2w.json"
+        # This should NOT match when filtering for T1w (false positive test)
+        false_positive = wrapper.mriqc_dir / "sub-01" / "func" / "sub-01_acq-T1w_bold.json"
 
         t1_file.parent.mkdir(parents=True, exist_ok=True)
         t2_file.parent.mkdir(parents=True, exist_ok=True)
+        false_positive.parent.mkdir(parents=True, exist_ok=True)
         t1_file.write_text("{}")
         t2_file.write_text("{}")
+        false_positive.write_text("{}")
 
         outputs = wrapper.find_mriqc_outputs(subject_id="01", modality="T1w")
 
+        # Should only match the actual T1w file, not the bold file with T1w in acquisition
         assert len(outputs) == 1
-        assert "T1w" in str(outputs[0])
+        assert outputs[0] == t1_file
 
     def test_find_mriqc_outputs_no_files(self, test_dirs, mock_mriqc_version):
         """Test finding MRIQC outputs when none exist."""
