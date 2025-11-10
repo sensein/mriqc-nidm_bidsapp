@@ -21,19 +21,16 @@ From: nipreps/mriqc:latest
         rm -rf /var/lib/apt/lists/*
 
     # Install Python dependencies using conda/pip hybrid approach
+    # See requirements.txt for full dependency list
     cd /opt
 
-    # Install conda-forge packages with micromamba (better dependency resolution)
+    # Install conda-forge packages with micromamba, then pip packages
     micromamba install -n base -y -c conda-forge \
         pandas \
         rdflib \
         click \
-        pybids
-
-    # Install PyPI-only packages using pip (from conda environment)
-    pip install --no-cache-dir pynidm nidmresults
-
-    # Install mriqc-nidm package in editable mode
+        pybids && \
+    pip install --no-cache-dir pynidm nidmresults && \
     pip install -e .
 
 %environment

@@ -20,20 +20,18 @@ ENV PATH=/usr/local/bin:$PATH
 COPY . /opt/
 
 # Install Python dependencies using conda/pip hybrid approach
+# See requirements.txt for full dependency list
 WORKDIR /opt
 
-# Install conda-forge packages with micromamba (better dependency resolution)
+# Install conda-forge packages with micromamba, then pip packages
+# Combining into single RUN reduces image layers
 RUN micromamba install -n base -y -c conda-forge \
-    pandas \
-    rdflib \
-    click \
-    pybids
-
-# Install PyPI-only packages using pip (from conda environment)
-RUN pip install --no-cache-dir pynidm nidmresults
-
-# Install mriqc-nidm package in editable mode
-RUN pip install -e .
+        pandas \
+        rdflib \
+        click \
+        pybids && \
+    pip install --no-cache-dir pynidm nidmresults && \
+    pip install -e .
 
 # =======================================
 # Runtime Configuration

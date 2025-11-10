@@ -195,16 +195,16 @@ def convert_nidm_formats(
 
     Examples:
         >>> convert_nidm_formats(
-        ...     Path('/temp/nidm.ttl'),
+        ...     Path('/temp/sub-01_T1w.ttl'),
         ...     Path('/output/nidm'),
         ...     '01',
         ...     logger
         ... )
-        (Path('/output/nidm/sub-01.ttl'), Path('/output/nidm/sub-01.jsonld'))
+        (Path('/output/nidm/sub-01_T1w.ttl'), Path('/output/nidm/sub-01_T1w.jsonld'))
 
     Notes:
         - Automatically detects input format using rdflib
-        - Output filenames include subject ID: sub-{subject_id}.ttl
+        - Output filenames preserve input filename stem (prevents overwrites)
         - Creates output directory if it doesn't exist
         - Preserves all RDF triples during conversion
         - JSON-LD format is useful for web applications
@@ -231,9 +231,11 @@ def convert_nidm_formats(
         graph.parse(input_file)
         logger.debug(f"  Loaded {len(graph)} RDF triples")
 
-        # Define output paths
-        ttl_output = output_dir / f"sub-{subject_id}.ttl"
-        jsonld_output = output_dir / f"sub-{subject_id}.jsonld"
+        # Define output paths - preserve input filename stem
+        # This ensures multiple scans don't overwrite each other
+        base_name = input_file.stem
+        ttl_output = output_dir / f"{base_name}.ttl"
+        jsonld_output = output_dir / f"{base_name}.jsonld"
 
         # Serialize to Turtle format
         graph.serialize(destination=str(ttl_output), format="turtle")
