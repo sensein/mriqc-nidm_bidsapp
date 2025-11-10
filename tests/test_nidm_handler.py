@@ -253,11 +253,11 @@ def test_convert_nidm_formats_from_turtle(sample_nidm_graph, logger):
             input_file, output_dir, "01", logger
         )
 
-        # Verify outputs exist
+        # Verify outputs exist and preserve input filename
         assert ttl_output.exists()
         assert jsonld_output.exists()
-        assert ttl_output.name == "sub-01.ttl"
-        assert jsonld_output.name == "sub-01.jsonld"
+        assert ttl_output.name == "input.ttl"  # Preserves input filename stem
+        assert jsonld_output.name == "input.jsonld"
 
         # Verify content is valid RDF
         graph_ttl = Graph()
