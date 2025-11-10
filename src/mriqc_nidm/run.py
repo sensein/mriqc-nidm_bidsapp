@@ -26,7 +26,7 @@ from .data import get_mriqc_dictionary
 from .json_to_csv import convert_mriqc_json_to_csv
 from .mriqc_wrapper import MRIQCWrapper
 from .nidm_handler import (
-    SUPPORTED_NIDM_EXTENSIONS,
+    _search_nidm_in_directory,
     convert_nidm_formats,
     copy_nidm_to_output,
     detect_existing_nidm,
@@ -135,22 +135,9 @@ def process_subject(
         existing_nidm = None
         if nidm_input_dir:
             # Custom NIDM input directory specified
-            # Use same detection logic as default to ensure consistency
+            # Use shared search logic to ensure consistency
             nidm_subject_dir = nidm_input_dir / f"sub-{subject_id}"
-            if nidm_subject_dir.exists():
-                # Prefer nidm.ttl first (convention)
-                preferred = nidm_subject_dir / "nidm.ttl"
-                if preferred.exists():
-                    existing_nidm = preferred
-                    logger.info(f"Found existing NIDM (custom location): {existing_nidm}")
-                else:
-                    # Search for other supported formats
-                    for ext in SUPPORTED_NIDM_EXTENSIONS:
-                        files = sorted(nidm_subject_dir.glob(f"*{ext}"))
-                        if files:
-                            existing_nidm = files[0]
-                            logger.info(f"Found existing NIDM (custom location): {existing_nidm}")
-                            break
+            existing_nidm = _search_nidm_in_directory(nidm_subject_dir, logger)
         else:
             # Convention-based location: BIDS/../NIDM/
             existing_nidm = detect_existing_nidm(bids_dir, subject_id, logger)
@@ -370,6 +357,14 @@ def main():
     else:
         mriqc_dir = args.output_dir / "mriqc"
         skip_mriqc = args.skip_mriqc
+
+    # Validate MRIQC directory if skipping execution
+    if skip_mriqc and not mriqc_dir.exists():
+        logger.error(
+            f"MRIQC output directory not found: {mriqc_dir}. "
+            "This is required when --skip-mriqc or --mriqc-output-dir is used."
+        )
+        return 1
 
     # Get list of subjects to process
     if args.participant_label:

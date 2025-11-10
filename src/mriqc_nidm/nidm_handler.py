@@ -28,6 +28,52 @@ from rdflib.plugin import PluginException
 SUPPORTED_NIDM_EXTENSIONS = [".ttl", ".jsonld", ".json-ld"]
 
 
+def _search_nidm_in_directory(
+    search_dir: Path, logger: Optional[logging.Logger] = None
+) -> Optional[Path]:
+    """
+    Search for NIDM file in a given directory (internal helper).
+
+    Search order (first match returned):
+    1. nidm.ttl (preferred)
+    2. Any *.ttl file
+    3. Any *.jsonld file
+    4. Any *.json-ld file
+
+    Args:
+        search_dir: Directory to search in
+        logger: Optional logger instance
+
+    Returns:
+        Path to NIDM file, or None if not found
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    if not search_dir.exists():
+        logger.debug(f"Search directory does not exist: {search_dir}")
+        return None
+
+    logger.debug(f"Searching for existing NIDM in: {search_dir}")
+
+    # Prefer nidm.ttl first (convention)
+    preferred = search_dir / "nidm.ttl"
+    if preferred.exists():
+        logger.info(f"Found existing NIDM (preferred): {preferred}")
+        return preferred
+
+    # Search for other NIDM formats in order of preference
+    # Sort results for deterministic behavior across filesystems
+    for ext in SUPPORTED_NIDM_EXTENSIONS:
+        files = sorted(search_dir.glob(f"*{ext}"))
+        if files:
+            logger.info(f"Found existing NIDM ({ext.lstrip('.')}): {files[0]}")
+            return files[0]
+
+    logger.debug(f"No NIDM files found in: {search_dir}")
+    return None
+
+
 def detect_existing_nidm(
     bids_dir: Path, subject_id: str, logger: Optional[logging.Logger] = None
 ) -> Optional[Path]:
@@ -70,28 +116,8 @@ def detect_existing_nidm(
     # Convention: NIDM files are in BIDS_DIR/../NIDM/sub-{subject_id}/
     nidm_input_dir = bids_dir.parent / "NIDM" / f"sub-{subject_id}"
 
-    if not nidm_input_dir.exists():
-        logger.debug(f"No NIDM input directory found at: {nidm_input_dir}")
-        return None
-
-    logger.debug(f"Searching for existing NIDM in: {nidm_input_dir}")
-
-    # Search order: nidm.ttl > *.ttl > *.jsonld > *.json-ld
-    preferred = nidm_input_dir / "nidm.ttl"
-    if preferred.exists():
-        logger.info(f"Found existing NIDM (preferred): {preferred}")
-        return preferred
-
-    # Search for other NIDM formats in order of preference
-    # Sort results for deterministic behavior across filesystems
-    for ext in SUPPORTED_NIDM_EXTENSIONS:
-        files = sorted(nidm_input_dir.glob(f"*{ext}"))
-        if files:
-            logger.info(f"Found existing NIDM ({ext.lstrip('.')}): {files[0]}")
-            return files[0]
-
-    logger.debug(f"No NIDM files found in: {nidm_input_dir}")
-    return None
+    # Use shared search logic
+    return _search_nidm_in_directory(nidm_input_dir, logger)
 
 
 def copy_nidm_to_output(
